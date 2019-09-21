@@ -1,20 +1,22 @@
-public void getDatabaseConnectionExample() {
+public static void getDatabaseConnectionExample(OIMClient oimClient) {
 		// get OIM Client
-		//OIMClient oimClient = getOIMConnection();
+		// OIMClient oimClient = getOIMConnection();
 
 		// OIM Schema Database Client
 		com.thortech.xl.dataaccess.tcDataProvider dbProvider = null;
 
 		try {
 			// Establish connection to OIM Schema
-			XLClientSecurityAssociation.setClientHandle(null);
+			XLClientSecurityAssociation.setClientHandle(oimClient);
 			dbProvider = new com.thortech.xl.client.dataobj.tcDataBaseClient();
-
 			String query = "select usr_login from usr where usr_login=?";
-			com.thortech.xl.dataaccess.tcDataSet usersDataSet = new com.thortech.xl.dataaccess.tcDataSet();
-			usersDataSet.setQuery(dbProvider, query);
-			usersDataSet.setString(1,"");
-			usersDataSet.executeQuery();
+			PreparedStatementUtil ps = new PreparedStatementUtil();
+			ps.setStatement(dbProvider, query);
+			ps.setString(1, "XELSYSADM"); 
+			ps.execute(); // Execute query
+
+			// Provisioning Tasks Result set
+			tcDataSet usersDataSet = ps.getDataSet();
 
 			int numRecords = usersDataSet.getTotalRowCount();
 
