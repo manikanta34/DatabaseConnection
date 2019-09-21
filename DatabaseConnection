@@ -1,0 +1,41 @@
+public void getDatabaseConnectionExample() {
+		// get OIM Client
+		//OIMClient oimClient = getOIMConnection();
+
+		// OIM Schema Database Client
+		com.thortech.xl.dataaccess.tcDataProvider dbProvider = null;
+
+		try {
+			// Establish connection to OIM Schema
+			XLClientSecurityAssociation.setClientHandle(null);
+			dbProvider = new com.thortech.xl.client.dataobj.tcDataBaseClient();
+
+			String query = "select usr_login from usr where usr_login=?";
+			com.thortech.xl.dataaccess.tcDataSet usersDataSet = new com.thortech.xl.dataaccess.tcDataSet();
+			usersDataSet.setQuery(dbProvider, query);
+			usersDataSet.setString(1,"");
+			usersDataSet.executeQuery();
+
+			int numRecords = usersDataSet.getTotalRowCount();
+
+			// iterate through each record
+			for (int i = 0; i < numRecords; i++) {
+				usersDataSet.goToRow(i);
+				System.out.println("User Login :: " + usersDataSet.getString("USR_LOGIN"));
+			}
+		}
+
+		catch (Exception e) {
+			System.out.println("Exception occured while getting user details" + e);
+		} finally {
+			if (dbProvider != null) {
+				try {
+					dbProvider.close();
+				} catch (Exception e) {
+					System.out.println("Exception occured while closing connection" + e);
+				}
+			}
+
+			XLClientSecurityAssociation.clearThreadLoginSession();
+		}
+	}
