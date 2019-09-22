@@ -45,3 +45,16 @@
 		}
 		return oimGroupMmebers;
 	}
+	
+	public String groupMembershipFilter(List<String> groups) {
+		StringBuffer filter = new StringBuffer();
+		StringBuffer fullGroupFilter = new StringBuffer();
+		StringBuffer eachGroupFilter = null;
+		for (String group : groups) {
+			eachGroupFilter = new StringBuffer();
+			eachGroupFilter.append("(memberof=").append(group).append(")");
+			fullGroupFilter.append(eachGroupFilter);
+		}
+		filter.append("(&(objectClass=user)").append("(|(wfc-accounttype=N)(wfc-accounttype=L)(wfc-accounttype=A))").append("(|" + fullGroupFilter + ")").append(")");
+		return filter.toString();
+	}
