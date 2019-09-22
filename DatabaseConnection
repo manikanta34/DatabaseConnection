@@ -1,43 +1,47 @@
-public static void getDatabaseConnectionExample(OIMClient oimClient) {
-		// get OIM Client
-		// OIMClient oimClient = getOIMConnection();
+	private String SQL_QUERY = "select distinct ud_aduser.ud_aduser_uid,"
+			+ "LISTAGG(NVL(SUBSTR(ud_adusrc.ud_adusrc_groupname,INSTR(ud_adusrc.ud_adusrc_groupname, '~')+1),"
+			+ "ud_adusrc.ud_adusrc_groupname), '|') WITHIN GROUP (ORDER BY ud_adusrc.ud_adusrc_groupname)"
+			+ " \"ud_adusrc.ud_adusrc_groupname\" from ud_aduser,ud_adusrc where \r\n"
+			+ "ud_adusrc.orc_key=ud_aduser.orc_key and ud_aduser.ud_aduser_uid in (select ud_aduser.ud_aduser_uid \r\n"
+			+ "from ud_aduser,orc,usr,oiu,ost,ud_adusrc where ud_adusrc.orc_key=ud_aduser.orc_key and\r\n"
+			+ "ud_aduser.orc_key=orc.orc_key and orc.usr_key=usr.usr_key and orc.orc_key=oiu.orc_key \r\n"
+			+ "and oiu.ost_key = ost.ost_key and ost.ost_status in ('Provisioned','Enabled','Disabled') and \r\n"
+			+ "ud_adusrc.ud_adusrc_groupname in ";
 
-		// OIM Schema Database Client
+	public Map<String, List<String>> getOIMData(List<String> updatedGroups, String ITResourcekey, OIMClient oimClient) {
+		Map<String, List<String>> oimGroupMmebers = null;
+		PreparedStatementUtil stmt = null;
 		com.thortech.xl.dataaccess.tcDataProvider dbProvider = null;
-
 		try {
-			// Establish connection to OIM Schema
 			XLClientSecurityAssociation.setClientHandle(oimClient);
 			dbProvider = new com.thortech.xl.client.dataobj.tcDataBaseClient();
-			String query = "select usr_login from usr where usr_login=?";
-			PreparedStatementUtil ps = new PreparedStatementUtil();
-			ps.setStatement(dbProvider, query);
-			ps.setString(1, "XELSYSADM"); 
-			ps.execute(); // Execute query
-
-			// Provisioning Tasks Result set
-			tcDataSet usersDataSet = ps.getDataSet();
-
+			stmt = new PreparedStatementUtil();
+			StringBuilder builder = new StringBuilder();
+			for (int i = 0; i < updatedGroups.size(); i++) {
+				builder.append("?,");
+			}
+			SQL_QUERY = SQL_QUERY + "(" + builder.deleteCharAt(builder.length() - 1).toString()
+					+ ")) group by ud_aduser.ud_aduser_uid";
+			stmt.setStatement(dbProvider, SQL_QUERY);
+			int index = 1;
+			for (String group : updatedGroups) {
+				stmt.setString(index++, ITResourcekey + "~" + group);
+			}
+			stmt.execute(); // Execute query
+			oimGroupMmebers = new ConcurrentHashMap<String, List<String>>();
+			tcDataSet usersDataSet = stmt.getDataSet();
 			int numRecords = usersDataSet.getTotalRowCount();
-
-			// iterate through each record
 			for (int i = 0; i < numRecords; i++) {
 				usersDataSet.goToRow(i);
-				System.out.println("User Login :: " + usersDataSet.getString("USR_LOGIN"));
-			}
-		}
+				String userLogin = usersDataSet.getString(0);
+				List<String> groupArray = Arrays
+						.asList(StringUtils.delimitedListToStringArray(usersDataSet.getString(1), "|"));
+				oimGroupMmebers.put(userLogin, groupArray);
 
-		catch (Exception e) {
-			System.out.println("Exception occured while getting user details" + e);
-		} finally {
-			if (dbProvider != null) {
-				try {
-					dbProvider.close();
-				} catch (Exception e) {
-					System.out.println("Exception occured while closing connection" + e);
-				}
 			}
 
-			XLClientSecurityAssociation.clearThreadLoginSession();
+		} catch (Exception e) {
+			System.out.println(e);
 		}
+		return oimGroupMmebers;
 	}
