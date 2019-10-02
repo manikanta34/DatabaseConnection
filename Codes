@@ -1,0 +1,34 @@
+public static DirContext connectToLDAP(String itResourceKey) {
+		DirContext ldapContext = null;
+		String ldap_host=ITResourceUtils.findITResParamFromKey(itResourceKey,"LDAPHostName",LMF);
+		String ldap_port=ITResourceUtils.findITResParamFromKey(itResourceKey,"Port Number",LMF);
+		String ldap_url = "ldap://" + ldap_host + ":" + ldap_port;
+		String ldap_principal=ITResourceUtils.findITResParamFromKey(itResourceKey,"DirectoryAdminName",LMF);
+		String[] userDN = ldap_principal.split("\\\\");
+		ldap_principal = userDN[1] + "@" + userDN[0];
+		String ldap_pwd=ITResourceUtils.findITResParamFromKey(itResourceKey,"DirectoryAdminPassword",LMF);
+		try {
+			ldapContext = new LDAPOperations().connectToLDAP(ldap_url,ldap_principal,ldap_pwd,"0","0");
+		} catch (NamingException e) {
+			// TODO Auto-generated catch block
+			// e.printStackTrace();
+		}
+		return ldapContext;
+	}
+	public  NamingEnumeration<SearchResult> getDataFromLDAP(DirContext ldapContext,
+			String searchBase, String searchFilter,String[] attrIDs) throws IOException {
+		NamingEnumeration<SearchResult> answer = null;
+		SearchControls ctls = new SearchControls();
+		ctls.setReturningAttributes(attrIDs);
+		ctls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+		try {
+
+			answer = ldapContext.search(searchBase, searchFilter, ctls);
+		} catch (NamingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return answer;
+
+	}
+
